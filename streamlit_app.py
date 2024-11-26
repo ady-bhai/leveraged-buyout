@@ -11,32 +11,46 @@ from Functions import (
 )
 
 # Title
-st.title("Leveraged Buyout Model")
+st.title("Leveraged Buyout (LBO) Model with Dynamic Metrics")
 
 # Sidebar for Inputs
 st.sidebar.header("Inputs")
-ltm_ebitda = st.sidebar.number_input("LTM EBITDA", value=10, step=1, help="Last Twelve Months EBITDA")
-entry_multiple = st.sidebar.number_input("Entry Multiple (x)", value=6, step=1, help="Multiple used to calculate purchase price")
-equity_pct = st.sidebar.slider("Equity Percentage (%)", 0, 100, 40, help="Percentage of equity in the capital structure")
+ltm_ebitda = st.sidebar.number_input("LTM EBITDA", value=10, step=1, help="Last Twelve Months EBITDA (Default: 10)")
+entry_multiple = st.sidebar.number_input("Entry Multiple (x)", value=8, step=1, help="Entry multiple for valuation (Default: 8)")
+equity_pct = st.sidebar.slider("Equity Percentage (%)", 30, 60, 40, help="Percentage of equity in the capital structure (Default: 40%)")
 
 # Sidebar for Debt Parameters
 st.sidebar.header("Debt Parameters")
-interest_rate = st.sidebar.number_input("Interest Rate (%)", value=5, step=1, help="Annual interest rate on debt")
-term = st.sidebar.slider("Loan Term (years)", 1, 20, 5, help="Duration of the loan in years")
-growth = st.sidebar.number_input("YOY Growth (%)", value=5, step=1, help="Year-over-year EBITDA growth rate")
+interest_rate = st.sidebar.number_input("Interest Rate (%)", value=6, step=1, help="Annual interest rate on debt (Default: 6%)")
+term = st.sidebar.slider("Loan Term (years)", 5, 10, 7, help="Loan term in years (Default: 7 years)")
+growth = st.sidebar.number_input("YOY Growth (%)", value=8, step=1, help="Year-over-year EBITDA growth rate (Default: 8%)")
 
-# Sidebar for Additional Financing
+# Sidebar for Unitranche Financing
 st.sidebar.header("Unitranche")
-unitranche_principal = st.sidebar.number_input("Unitranche Principal ($)", value=50_000_000)
-unitranche_interest = st.sidebar.number_input("Unitranche Interest Rate (%)", value=8)
+unitranche_principal = st.sidebar.number_input(
+    "Unitranche Principal ($)", value=48_000_000, step=1_000_000, help="Principal for unitranche debt (Default: $48M)"
+)
+unitranche_interest = st.sidebar.number_input(
+    "Unitranche Interest Rate (%)", value=6, step=1, help="Annual interest rate for unitranche (Default: 6%)"
+)
 
+# Sidebar for PIK Loan
 st.sidebar.header("PIK Loan")
-pik_principal = st.sidebar.number_input("PIK Loan Principal ($)", value=30_000_000)
-pik_interest = st.sidebar.number_input("PIK Loan Interest Rate (%)", value=12)
+pik_principal = st.sidebar.number_input(
+    "PIK Loan Principal ($)", value=8_000_000, step=1_000_000, help="Principal for PIK loan (Default: $8M)"
+)
+pik_interest = st.sidebar.number_input(
+    "PIK Loan Interest Rate (%)", value=10, step=1, help="Annual interest rate for PIK loan (Default: 10%)"
+)
 
+# Sidebar for Preferred Equity
 st.sidebar.header("Preferred Equity")
-preferred_principal = st.sidebar.number_input("Preferred Equity Contribution ($)", value=20_000_000)
-preferred_return = st.sidebar.number_input("Preferred Return Rate (%)", value=10)
+preferred_principal = st.sidebar.number_input(
+    "Preferred Equity Contribution ($)", value=12_000_000, step=1_000_000, help="Preferred equity contribution (Default: $12M)"
+)
+preferred_return = st.sidebar.number_input(
+    "Preferred Return Rate (%)", value=10, step=1, help="Return rate on preferred equity (Default: 10%)"
+)
 
 # Initial Values Calculation
 inputs = initial_values(ltm_ebitda, entry_multiple, equity_pct)
