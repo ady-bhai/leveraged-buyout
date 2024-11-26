@@ -1,7 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from Functions import *
+from Functions import (
+    amortization_table_unitranche,
+    amortization_table_pik,
+    capital_structure_extended,
+    initial_values,
+    exit_indicators_extended,
+    appreciation,
+)
 
 # Title
 st.title("Leveraged Buyout (LBO)")
@@ -18,6 +25,20 @@ interest_rate = st.sidebar.number_input("Interest Rate (%)", value=5, step=1, he
 term = st.sidebar.slider("Loan Term (years)", 1, 20, 5, help="Duration of the loan in years")
 growth = st.sidebar.number_input("YOY Growth (%)", value=5, step=1, help="Year-over-year EBITDA growth rate")
 
+# Sidebar for Additional Financing
+st.sidebar.header("Unitranche")
+unitranche_principal = st.sidebar.number_input("Unitranche Principal ($)", value=50_000_000)
+unitranche_interest = st.sidebar.number_input("Unitranche Interest Rate (%)", value=8)
+
+st.sidebar.header("PIK Loan")
+pik_principal = st.sidebar.number_input("PIK Loan Principal ($)", value=30_000_000)
+pik_interest = st.sidebar.number_input("PIK Loan Interest Rate (%)", value=12)
+
+st.sidebar.header("Preferred Equity")
+preferred_principal = st.sidebar.number_input("Preferred Equity Contribution ($)", value=20_000_000)
+preferred_return = st.sidebar.number_input("Preferred Return Rate (%)", value=10)
+preferred_accrual = st.sidebar.radio("Preferred Dividends", ["Accrued", "Periodic"], index=0)
+
 # Initial Values Calculation
 inputs = initial_values(ltm_ebitda, entry_multiple, equity_pct)
 purchase_price = inputs["purchase_price"]
@@ -33,43 +54,23 @@ col1.metric(label="Equity", value=f"${equity:,.0f}", delta=f"{equity_percentage:
 col2.metric(label="Debt", value=f"${debt:,.0f}", delta=f"{debt_percentage:.0%}")
 col3.metric(label="Enterprise Value", value=f"${purchase_price:,.0f}")
 
-# Amortization Table
+# Amortization Tables
 st.header("Financial Projections")
 
-# Generate Amortization Table
-df_amortization = amortization_table(debt, interest_rate, term)
-
-# Projections and EBITDA Table
-try:
-    # Dynamic Year Range
-    years = range(1, term + 1)
-    projections_data = {"Year": [], "EBITDA": [], "Interest": [], "Net Income": []}
-    
-    for year in years:
-        ebitda = appreciation(growth / 100, year) * ltm_ebitda
-        interest = df_amortization.loc[year, "Interest"] if year in df_amortization.index else 0
-        net_income = ebitda - interest
-        projections_data["Year"].append(year)
-        projections_data["EBITDA"].append(ebitda)
-        projections_data["Interest"].append(interest)
-        projections_data["Net Income"].append(net_income)
-
-    df_projections = pd.DataFrame(projections_data)
-    st.dataframe(df_projections.style.format("${:,.0f}"))
-
-except Exception as e:
-    st.error(f"Error generating projections: {e}")
+# Generate Amortization Tables for Each Financing Type
+df_unitranche = amortization_table_unitranche(unitranche_principal, unitranche_interest, term)
+df_pik = amortization_table_pik(pik_principal, pik_interest, term)
 
 # Capital Structure Visualization
 st.header("Capital Structure Over Time")
 try:
-    df_capital = capital_structure(df_amortization, purchase_price)
+    df_capital = capital_structure_extended(df_unitranche, df_pik, preferred_principal, term, purchase_price)
     fig = px.bar(
         df_capital,
         x=df_capital.index,
-        y=["Debt", "Equity"],
+        y=["Debt", "PIK Loan", "Preferred Equity", "Equity"],
         barmode="stack",
-        title="Debt vs. Equity Over Time",
+        title="Capital Structure Over Time",
         labels={"value": "USD", "variable": "Capital Type"}
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -79,41 +80,10 @@ except Exception as e:
 # Exit Metrics
 st.header("Exit Metrics")
 try:
-    exit_KPI = exit_indicators(df_amortization, growth, ltm_ebitda, entry_multiple, equity)
+    exit_KPI = exit_indicators_extended(df_unitranche, df_pik, preferred_principal, preferred_return, term, growth, ltm_ebitda, entry_multiple, equity)
     col1, col2, col3 = st.columns(3)
     col1.metric(label="Exit Enterprise Value", value=f"${exit_KPI['e_ev']:,.0f}")
     col2.metric(label="MOIC", value=f"{exit_KPI['moic']:.2f}x")
     col3.metric(label="IRR", value=f"{exit_KPI['irr_exit']:.2%}")
 except Exception as e:
     st.error(f"Error calculating exit metrics: {e}")
-
-# Sensitivity Analysis
-st.header("Sensitivity Analysis")
-tab1, tab2, tab3 = st.tabs(["Loan Term", "Growth Rate", "Equity Percentage"])
-
-with tab1:
-    term_sensitive = st.slider("Select a new loan term", 1, 20, term)
-    try:
-        df_term_sensitive = amortization_table(debt, interest_rate, term_sensitive)
-        exit_KPI_term = exit_indicators(df_term_sensitive, growth, ltm_ebitda, entry_multiple, equity)
-        st.metric("Updated IRR", f"{exit_KPI_term['irr_exit']:.2%}")
-    except Exception as e:
-        st.error(f"Error with term sensitivity: {e}")
-
-with tab2:
-    growth_sensitive = st.slider("Select a new growth rate (%)", 0, 100, growth)
-    try:
-        exit_KPI_growth = exit_indicators(df_amortization, growth_sensitive, ltm_ebitda, entry_multiple, equity)
-        st.metric("Updated IRR", f"{exit_KPI_growth['irr_exit']:.2%}")
-    except Exception as e:
-        st.error(f"Error with growth sensitivity: {e}")
-
-with tab3:
-    equity_pct_sensitive = st.slider("Select a new equity percentage (%)", 0, 100, equity_pct)
-    try:
-        updated_inputs = initial_values(ltm_ebitda, entry_multiple, equity_pct_sensitive)
-        updated_equity = updated_inputs["equity"]
-        exit_KPI_equity = exit_indicators(df_amortization, growth, ltm_ebitda, entry_multiple, updated_equity)
-        st.metric("Updated IRR", f"{exit_KPI_equity['irr_exit']:.2%}")
-    except Exception as e:
-        st.error(f"Error with equity sensitivity: {e}")
