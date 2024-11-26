@@ -83,3 +83,6 @@ def exit_indicators_extended(unitranche_df, pik_df, preferred_principal, preferr
         e_ev = moic = irr_exit = 0
 
     return {"e_ev": e_ev, "moic": moic, "irr_exit": irr_exit}
+
+
+
