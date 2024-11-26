@@ -11,7 +11,7 @@ from Functions import (
 )
 
 # Title
-st.title("Leveraged Buyout (LBO) Model with Dynamic Metrics")
+st.title("Leveraged Buyout Model")
 
 # Sidebar for Inputs
 st.sidebar.header("Inputs")
@@ -120,33 +120,3 @@ col1, col2, col3 = st.columns(3)
 col1.metric(label="Exit Enterprise Value", value=f"${exit_KPI['e_ev']:,.0f}")
 col2.metric(label="MOIC", value=f"{exit_KPI['moic']:.2f}x")
 col3.metric(label="IRR", value=f"{exit_KPI['irr_exit']:.2%}")
-
-# Sensitivity Analysis
-st.header("Sensitivity Analysis")
-loan_sensitivity, growth_sensitivity, equity_sensitivity = st.tabs(["Loan Term", "Growth Rate", "Equity Percentage"])
-
-# Loan Term Sensitivity
-with loan_sensitivity:
-    term_sensitive = st.slider("Select a new loan term", 1, 20, term)
-    df_term_sensitivity = amortization_table_unitranche(unitranche_principal, unitranche_interest, term_sensitive)
-    exit_KPI_term = exit_indicators_extended(
-        df_term_sensitivity, df_pik, preferred_principal, preferred_return, term_sensitive, growth, ltm_ebitda, entry_multiple, equity
-    )
-    st.metric(label="Updated IRR", value=f"{exit_KPI_term['irr_exit']:.2%}")
-
-# Growth Rate Sensitivity
-with growth_sensitivity:
-    growth_sensitive = st.slider("Select a new growth rate (%)", 0, 100, growth)
-    exit_KPI_growth = exit_indicators_extended(
-        df_unitranche, df_pik, preferred_principal, preferred_return, term, growth_sensitive, ltm_ebitda, entry_multiple, equity
-    )
-    st.metric(label="Updated IRR", value=f"{exit_KPI_growth['irr_exit']:.2%}")
-
-# Equity Percentage Sensitivity
-with equity_sensitivity:
-    equity_pct_sensitive = st.slider("Select a new equity percentage (%)", 0, 100, equity_pct)
-    updated_equity = initial_values(ltm_ebitda, entry_multiple, equity_pct_sensitive)["equity"]
-    exit_KPI_equity = exit_indicators_extended(
-        df_unitranche, df_pik, preferred_principal, preferred_return, term, growth, ltm_ebitda, entry_multiple, updated_equity
-    )
-    st.metric(label="Updated IRR", value=f"{exit_KPI_equity['irr_exit']:.2%}")
