@@ -58,17 +58,28 @@ def appreciation(rate, term):
 
 def exit_indicators_extended(unitranche_df, pik_df, preferred_principal, preferred_return, term, growth, ltm_ebitda, entry_multiple, equity):
     try:
-        if term <= 0 or preferred_return < 0 or growth < -1:
-            raise ValueError("Invalid term, growth, or preferred return value")
-        
+        # Calculate Exit Enterprise Value
         e_ev = appreciation(growth / 100, term) * ltm_ebitda * entry_multiple
+
+        # Calculate Outstanding Balances
         debt_balance = unitranche_df["Balance"].iloc[-1] if not unitranche_df.empty else 0
         pik_balance = pik_df["Balance"].iloc[-1] if not pik_df.empty else 0
         preferred_accrued = preferred_principal * (1 + preferred_return / 100) ** term
-        equity_proceeds = e_ev - debt_balance - pik_balance - preferred_accrued
-        moic = equity_proceeds / equity if equity > 0 else 0
-        irr_exit = (moic ** (1 / term)) - 1 if term > 0 else 0
-    except:
-        e_ev = moic = irr_exit = 0
-    return {"e_ev": e_ev, "moic": moic, "irr_exit": irr_exit}
 
+        # Calculate Equity Proceeds
+        equity_proceeds = e_ev - (debt_balance + pik_balance + preferred_accrued)
+
+        # Prevent negative equity proceeds
+        if equity_proceeds <= 0:
+            equity_proceeds = 0
+
+        # Calculate MOIC
+        moic = equity_proceeds / equity if equity > 0 else 0
+
+        # Calculate IRR
+        irr_exit = (moic ** (1 / term)) - 1 if moic > 0 and term > 0 else 0
+    except Exception as e:
+        print(f"Error in exit_indicators_extended: {e}")
+        e_ev = moic = irr_exit = 0
+
+    return {"e_ev": e_ev, "moic": moic, "irr_exit": irr_exit}
