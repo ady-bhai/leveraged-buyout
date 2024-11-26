@@ -1,1 +1,4 @@
-streamlit
+streamlit==1.26.0  # Ensure compatibility with your Streamlit app
+pandas==2.0.3      # For data manipulation
+numpy==1.25.0      # For numerical computations
+plotly==5.17.0     # For interactive visualizations
